@@ -1,10 +1,9 @@
 //DMD
 #include <SPI.h>
 #include <DMD2.h>
-#include <fonts/Droid_Sans_24.h>
-//#include "MyGraphicsFont.h"
-SoftDMD dmd(1, 2); // DMD controls the entire display
-DMD_TextBox box(dmd, 0, 0);  // "box" provides a text box to automatically write to/scroll the display
+//#include <fonts/Droid_Sans_24.h>
+#include "ElconFont.h"
+SoftDMD dmd(1, 4); // DMD controls the entire display
 
 //7-Segment
 byte JamMenitTgl[8];//yp=0,ys=0,yr=2,ysr=0,mp=0,ms=0,dp=0,ds=0,sp=0,ss=0,mp=0,ms=0,hp=0,hs=0
@@ -15,7 +14,7 @@ byte JamMenitTgl[8];//yp=0,ys=0,yr=2,ysr=0,mp=0,ms=0,dp=0,ds=0,sp=0,ss=0,mp=0,ms
 #include <Wire.h>
 #define DS3231_I2C_ADDRESS 0x68
 #include "RTCSetting.h"
-byte second = 11, minute = 11, hour = 11, dayOfWeek, dayOfMonth, month, year;
+byte second, minute, hour, dayOfWeek, dayOfMonth, month, year;
 bool changeDay = false; byte lastDay = 0; byte lastMonth = 0;
 volatile boolean timeTick = false;  //also as flag every 1 second
 
@@ -59,7 +58,7 @@ ISR(TIMER2_OVF_vect) {
 void setup() {
   Serial.begin(9600);
   dmd.setBrightness(255);
-  dmd.selectFont(Droid_Sans_24);
+  dmd.selectFont(ElconFont);
   dmd.begin();
   Serial.println("DMD OK");
 
@@ -117,7 +116,12 @@ void loop() {//return;
     if (mode == STDBY) {
       ScoreA = 0; ScoreB = 0; Round = 1;
       dmd.clearScreen();
-      dmd.drawString(0, 0, String(ScoreA));
+      dmd.drawString(0, 0, String(ScoreA / 10));
+      dmd.drawString(16, 0, String(ScoreA % 10));
+      dmd.drawString(0, 32, String(ScoreB / 10));
+      dmd.drawString(16, 32, String(ScoreB % 10));
+
+      //dmd.drawString(0, 0, String(ScoreA));
       //dmd.drawString(0, 0, String(ScoreB));
 
       jamT = EEPROM.read(0);
@@ -128,7 +132,7 @@ void loop() {//return;
 
       STARTDIGITTGL
       displayJamMenitTgl(jamT, menitT, detikT);
-      //displayRound(Round);
+      displayRound(Round);
       ENDDIGITTGL
       mode = SET; deBounching3dt();
 
@@ -137,7 +141,7 @@ void loop() {//return;
       EEPROM.write(1, menitT);
       STARTDIGITTGL
       displayJamMenitTgl(jamT, menitT, detikT);
-      //displayRound(Round);
+      displayRound(Round);
       ENDDIGITTGL
 
     } else if (mode == PLAY || mode == ALARM || mode == PAUSED) {
@@ -181,7 +185,7 @@ void loop() {//return;
 
           STARTDIGITTGL
           displayJamMenitTgl(0, 0, 0);
-          //displayRound(Round);
+          displayRound(Round);
           ENDDIGITTGL
 
           break;
@@ -203,7 +207,7 @@ void loop() {//return;
         EEPROM.write(1, menitT);
         STARTDIGITTGL
         displayJamMenitTgl(jamT, menitT, detikT);
-        //displayRound(Round);
+        displayRound(Round);
         ENDDIGITTGL
       }
 
@@ -219,7 +223,7 @@ void loop() {//return;
           Serial.println(Round);
           STARTDIGITTGL
           displayJamMenitTgl(0, 0, 0);
-          //displayRound(Round);
+          displayRound(Round);
           ENDDIGITTGL
 
           break;
@@ -251,7 +255,7 @@ void loop() {//return;
       EEPROM.write(0, jamT);
       STARTDIGITTGL
       displayJamMenitTgl(jamT, menitT, detikT);
-      //displayRound(Round);
+      displayRound(Round);
       ENDDIGITTGL
 
     } else if (mode == PLAY) {
@@ -286,7 +290,7 @@ void loop() {//return;
       EEPROM.write(0, jamT);
       STARTDIGITTGL
       displayJamMenitTgl(jamT, menitT, detikT);
-      //displayRound(Round);
+      displayRound(Round);
       ENDDIGITTGL
 
     } else if (mode == PLAY) {
@@ -342,7 +346,7 @@ void loop() {//return;
         detikPlay = 0;
         STARTDIGITTGL
         displayJamMenitTgl(jamT, menitT, detikT);
-        //displayRound(Round);
+        displayRound(Round);
         ENDDIGITTGL
         mode = PAUSED;
       }
@@ -363,7 +367,7 @@ void loop() {//return;
         detik = detik2jam - 1;
         STARTDIGITTGL
         displayJamMenitTgl(jam, menit, detik);
-        //displayRound(Round);
+        displayRound(Round);
         ENDDIGITTGL
         Serial.print(Round); Serial.print(";"); Serial.print(jam); Serial.print(":"); Serial.print(menit); Serial.print(":"); Serial.println(detik);
       } else {
@@ -384,7 +388,12 @@ void loop() {//return;
   if (scoreChange) {
     scoreChange = false;
     dmd.clearScreen();
-    dmd.drawString(0, 0, String(ScoreA));
+    dmd.drawString(0, 0, String(ScoreA / 10));
+    dmd.drawString(16, 0, String(ScoreA % 10));
+    dmd.drawString(0, 32, String(ScoreB / 10));
+    dmd.drawString(16, 32, String(ScoreB % 10));
+
+    //dmd.drawString(0, 0, String(ScoreA));
     //dmd.drawString(0, 0, String(ScoreB));
   }
 
@@ -448,4 +457,9 @@ void deBounching3dt() {
   digitalWrite(pinBuzzer, HIGH);
   delay(100);
   digitalWrite(pinBuzzer, LOW);
+}
+
+void displayRound(byte Round){
+  displayDigitTgl(Round % 10);
+  displayDigitTgl(Round / 10);
 }
