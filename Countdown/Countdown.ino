@@ -147,6 +147,7 @@ void loop() {//return;
       if (longpress) {
         longpress = false;
         mode = STDBY;
+        Round=0;
       } else {
         if (mode == PLAY) {
           ScoreB++; scoreChange = true;
@@ -167,8 +168,8 @@ void loop() {//return;
           longpress = true;
 
           STARTDIGITTGL
-          displayJamMenitTgl(0, 0, 0);
           displayRound(Round);
+          displayJamMenitTgl(0, 0, 0);
           ENDDIGITTGL
 
           break;
@@ -202,8 +203,8 @@ void loop() {//return;
           Serial.print("Round:");
           Serial.println(Round);
           STARTDIGITTGL
-          displayJamMenitTgl(0, 0, 0);
           displayRound(Round);
+          displayJamMenitTgl(0, 0, 0);
           ENDDIGITTGL
 
           break;
@@ -339,8 +340,8 @@ void loop() {//return;
         detikLocal = detik2jam - 1;
 
         STARTDIGITTGL            //jam menit detik local variable
-        displayJamMenitTgl(jamLocal, menitLocal, detikLocal);
         displayRound(Round);
+        displayJamMenitTgl(jamLocal, menitLocal, detikLocal);
         ENDDIGITTGL
 
         Serial.print(Round); Serial.print(";"); Serial.print(jamLocal); Serial.print(":"); Serial.print(menitLocal); Serial.print(":"); Serial.println(detikLocal);
@@ -408,15 +409,15 @@ void readDS3231time(byte *second,
 void updateJamSetting() {
   readDS3231time(&second, &minute, &hour, &dayOfWeek, &dayOfMonth, &month, &year);
   STARTDIGITTGL
-  displayJamMenitTgl(hour, minute, second);
   displayRound(Round);
+  displayJamMenitTgl(hour, minute, second);
   ENDDIGITTGL
 }
 
 void updateTimerSetting() {
   STARTDIGITTGL
-  displayJamMenitTgl(jamT, menitT, detikT);
   displayRound(Round);
+  displayJamMenitTgl(jamT, menitT, detikT);
   ENDDIGITTGL
 }
 
@@ -437,6 +438,7 @@ void deBounching3dt() {
 }
 
 void displayRound(byte Round) {
-//  displayDigitTgl(Round % 10);
-//  displayDigitTgl(Round / 10);
+  //  displayDigitTgl(Round % 10);
+  //  displayDigitTgl(Round / 10);
+  displayDigitTgl(Round);
 }

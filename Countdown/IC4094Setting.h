@@ -2,6 +2,7 @@
 //Pin 8 connected  Strobe (pin 1)
 //Pin 9 connected  Data (pin 2)
 //Pin 10 connected  Clock (pin 3)
+
 /*
 #define strobePin 8
 #define dataPin  9
@@ -17,7 +18,7 @@ byte segCharThn[] = {0x7b,0x12,0x67,0x37,0x1e,0x3d,0x7d,0x13,0x7f,0x3f,0x04,0x00
 #define STARTDIGITTHN digitalWrite(strobePinThn, LOW);
 #define ENDDIGITTHN digitalWrite(strobePinThn, HIGH);
 
-*/
+
 
 #define strobePinTgl 3
 #define dataPinTgl  4
@@ -25,15 +26,15 @@ byte segCharThn[] = {0x7b,0x12,0x67,0x37,0x1e,0x3d,0x7d,0x13,0x7f,0x3f,0x04,0x00
 byte segCharTgl[] = {0x01,0x37,0x42,0x12,0x34,0x18,0x08,0x33,0x00,0x10,0xff,0x00};
 #define STARTDIGITTGL digitalWrite(strobePinTgl, LOW);
 #define ENDDIGITTGL digitalWrite(strobePinTgl, HIGH);
+*/
 
-/*
 #define strobePinTgl 3
 #define dataPinTgl  4
 #define clockPinTgl  5
 byte segCharTgl[] = {0xFA,0x18,0xEC,0xBC,0x1E,0xB6,0xF7,0x98,0xFF,0xBF,0x00,0xFF};
 #define STARTDIGITTGL digitalWrite(strobePinTgl, LOW);
 #define ENDDIGITTGL digitalWrite(strobePinTgl, HIGH);
-*/
+
 
 
 void enable4094(){
@@ -85,20 +86,20 @@ void displayJamMenit(byte jam, byte menit) {
 void displayMenitDetik(byte menit, byte detik) {
   displayJamMenit(menit, detik);
 }
+
+void displayDigitTgl(byte digit) {
+  shiftOut(dataPinTgl, clockPinTgl, MSBFIRST, segCharTgl[digit]);
+}
+void displayJamMenitTgl(byte jam, byte menit, byte detik) {
+  displayDigitTgl(detik % 10);JamMenitTgl[0]=detik % 10;
+  displayDigitTgl(detik / 10);JamMenitTgl[1]=detik / 10;
+  displayDigitTgl(menit % 10);JamMenitTgl[2]=menit % 10;
+  displayDigitTgl(menit / 10);JamMenitTgl[3]=menit / 10;
+  displayDigitTgl(jam % 10);JamMenitTgl[4]=jam % 10;
+  displayDigitTgl(jam / 10); JamMenitTgl[5]=jam / 10;
+}
 */
-void displayDigitTgl(byte digit) {
-  shiftOut(dataPinTgl, clockPinTgl, MSBFIRST, segCharTgl[digit]);
-}
-void displayJamMenitTgl(byte jam, byte menit, byte detik) {
-  displayDigitTgl(detik % 10);JamMenitTgl[0]=detik % 10;
-  displayDigitTgl(detik / 10);JamMenitTgl[1]=detik / 10;
-  displayDigitTgl(menit % 10);JamMenitTgl[2]=menit % 10;
-  displayDigitTgl(menit / 10);JamMenitTgl[3]=menit / 10;
-  displayDigitTgl(jam % 10);JamMenitTgl[4]=jam % 10;
-  displayDigitTgl(jam / 10); JamMenitTgl[5]=jam / 10;
-}
 
-/*
 void displayDigitTgl(byte digit) {
   shiftOut(dataPinTgl, clockPinTgl, MSBFIRST, segCharTgl[digit]);
 }
@@ -110,4 +111,4 @@ void displayJamMenitTgl(byte jam, byte menit, byte detik) {
   displayDigitTgl(menit % 10);JamMenitTgl[2]=menit % 10;
   displayDigitTgl(detik / 10);JamMenitTgl[1]=detik / 10;
   displayDigitTgl(detik % 10);JamMenitTgl[0]=detik % 10;
-}*/
+}
