@@ -57,7 +57,7 @@ ISR(TIMER2_OVF_vect) {
 // the setup routine runs once when you press reset:
 void setup() {
   Serial.begin(9600);
-  dmd.setBrightness(255);
+  dmd.setBrightness(0);  //off DMD
   dmd.selectFont(ElconFont);
   dmd.begin();
   Serial.println("DMD OK");
@@ -72,7 +72,7 @@ void setup() {
   //Timer1.attachInterrupt( timerIsr ); // attach the service routine here
   readDS3231time(&second, &minute, &hour, &dayOfWeek, &dayOfMonth, &month, &year);
   changeDay = true;
-  Serial.print("RTC:"); Serial.print(second); Serial.print(minute); Serial.println(hour);
+  Serial.print("RTC: "); Serial.print(hour); Serial.print(":"); Serial.print(minute); Serial.print(":"); Serial.println(second);
   updateJamSetting();
 
   //buzzer
@@ -97,6 +97,9 @@ void setup() {
   pinMode(A1, INPUT);
   pinMode(A2, INPUT);
   pinMode(A3, INPUT);
+
+  dmd.setBrightness(255);  //on DMD
+
 }
 
 byte bounchCount = 5;
@@ -123,9 +126,13 @@ void loop() {//return;
       updateTimerSetting();
       mode = SET; deBounching3dt();
 
-    } else if (mode == SET) {
+    } else if (mode == SET ) {
       menitT++; if (menitT > 59) menitT = 00;
       EEPROM.write(1, menitT);
+      updateTimerSetting();
+    } else if (mode == SETTIME ) {
+      menitT++; if (menitT > 59) menitT = 00;
+      //EEPROM.write(1, menitT);
       updateTimerSetting();
 
     } else if (mode == PLAY || mode == ALARM || mode == PAUSED) {
@@ -147,7 +154,7 @@ void loop() {//return;
       if (longpress) {
         longpress = false;
         mode = STDBY;
-        Round=0;
+        Round = 0;
       } else {
         if (mode == PLAY) {
           ScoreB++; scoreChange = true;
@@ -214,6 +221,7 @@ void loop() {//return;
         delay(20);
         Serial.println(iteration);
       }
+
       iteration = 0;
 
       if (longpress) {
@@ -227,6 +235,11 @@ void loop() {//return;
     } else if (mode == PLAY) {
       if (ScoreB > 0) ScoreB--; scoreChange = true;
     }
+    else if (mode == SETTIME ) {
+      if (menitT > 0) menitT--; else menitT = 59;
+      //EEPROM.write(1, menitT);
+      updateTimerSetting();
+    }
     deBounching();
   }
 
@@ -236,7 +249,12 @@ void loop() {//return;
       EEPROM.write(0, jamT);
       updateTimerSetting();
 
-    } else if (mode == PLAY) {
+    }  else  if (mode == SETTIME) {
+      jamT++; if (jamT > 59) jamT = 00;
+      //EEPROM.write(0, jamT);
+      updateTimerSetting();
+
+    } else if (mode == PLAY || mode == STDBY) {
       while (digitalRead(A2)) {
         iteration++;
         delay(50);
@@ -252,9 +270,16 @@ void loop() {//return;
       }
       iteration = 0;
 
-      if (longpress) {
+      if (longpress && mode == PLAY) {                //PLAY: Round up
         longpress = false;
         Round++;
+      } else if (longpress && mode == STDBY) {        //STDBY --> SETTIME (Press C 3 second at standby)
+        longpress = false;
+        mode = SETTIME;
+
+      } else if (longpress && mode == SETTIME) {        //SETTIME --> STDBY, cancel set time (Press C 3 second at set time)
+        longpress = false;
+        mode = STDBY;
       } else {
         ScoreA++; scoreChange = true;
       }
@@ -267,7 +292,10 @@ void loop() {//return;
       if (jamT > 0) jamT--; else jamT = 23;
       EEPROM.write(0, jamT);
       updateTimerSetting();
-
+    } else  if (mode == SETTIME) {
+      if (jamT > 0) jamT--; else jamT = 23;
+      //EEPROM.write(0, jamT);
+      updateTimerSetting();
     } else if (mode == PLAY) {
       while (digitalRead(A3)) {
         iteration++;
@@ -284,9 +312,14 @@ void loop() {//return;
       }
       iteration = 0;
 
-      if (longpress) {
+      if (longpress && mode == PLAY) {                //PLAY: Round down
         longpress = false;
         Round--;
+      } else if (longpress && mode == SETTIME) {        //SETTIME --> STDBY, cancel set time (Press C 3 second at set time)
+        longpress = false;
+        setDS3231time(  detikT, menitT, jamT, dayOfWeek, dayOfMonth, month, year);
+        mode = STDBY;
+        Round = 0;
       } else {
         if (ScoreA > 0)ScoreA--; scoreChange = true;
       }
@@ -356,6 +389,17 @@ void loop() {//return;
     //}
   }
 
+  if (mode == SETTIME) {
+    digitalWrite(pinBuzzer, HIGH);
+    Serial.println("Setting RTC....");
+    Round = 0x0a;
+    //updateJamSetting();
+    //EEPROM.write(2,hour);
+    //EEPROM.write(3,minute);
+    //EEPROM.write(4,second);
+    jamT = hour; menitT = minute; detikT = second;
+    updateTimerSetting();
+  }
 
 
   if (scoreChange) {
@@ -441,4 +485,8 @@ void displayRound(byte Round) {
   //  displayDigitTgl(Round % 10);
   //  displayDigitTgl(Round / 10);
   displayDigitTgl(Round);
+}
+
+void updateRTC() {
+  setDS3231time(  second, minute, hour, dayOfWeek, dayOfMonth, month, year);
 }
