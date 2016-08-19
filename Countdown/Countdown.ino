@@ -26,7 +26,7 @@ volatile boolean timeTick = false;  //also as flag every 1 second
 #define pinBuzzer 12
 boolean buzzerStatus = false;
 
-enum mode {STDBY, SET, PLAY, ALARM, PAUSED};
+enum mode {STDBY, SET, PLAY, ALARM, PAUSED, SETTIME};
 byte mode = STDBY;
 unsigned int detikPlay = 0, detikAlarm = 0;
 byte alarmduration = 3;
