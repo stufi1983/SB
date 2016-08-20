@@ -54,6 +54,10 @@ ISR(TIMER2_OVF_vect) {
 
 //eeprom
 
+byte bounchCount = 5;
+bool scoreChange = false;
+bool longpress = false;
+
 // the setup routine runs once when you press reset:
 void setup() {
   Serial.begin(9600);
@@ -98,24 +102,32 @@ void setup() {
   pinMode(A2, INPUT);
   pinMode(A3, INPUT);
 
-  dmd.setBrightness(255);  //on DMD
+  //dmd.setBrightness(255);  //on DMD
+  scoreChange = true;
 
 }
 
-byte bounchCount = 5;
-bool scoreChange = false;
-bool longpress = false;
+
 void loop() {//return;
 
   if (digitalRead(A0)) { //A
     if (mode == STDBY) {
       ScoreA = 0; ScoreB = 0; Round = 1;
 
-      dmd.clearScreen();
+      // dmd.drawString(16, 32, String(ScoreB % 10));
+      // dmd.drawString(0, 32, String(ScoreB / 10));
+      // dmd.drawString(0, 0, String(ScoreA / 10));
+      // dmd.drawString(16, 0, String(ScoreA % 10));
+      String ch;
+      ch = inttochar(ScoreB % 10);
+      dmd.drawString(16, 32, ch);
+      ch = inttochar(ScoreB / 10);
+      dmd.drawString(0, 32, ch);
       dmd.drawString(0, 0, String(ScoreA / 10));
       dmd.drawString(16, 0, String(ScoreA % 10));
-      dmd.drawString(0, 32, String(ScoreB / 10));
-      dmd.drawString(16, 32, String(ScoreB % 10));
+
+      clearLine(ScoreB % 10);
+
 
       jamT = EEPROM.read(0);
       if (jamT > 24) jamT = 00;
@@ -155,6 +167,7 @@ void loop() {//return;
         longpress = false;
         mode = STDBY;
         Round = 0;
+        scoreChange = true;
       } else {
         if (mode == PLAY) {
           ScoreB++; scoreChange = true;
@@ -191,6 +204,7 @@ void loop() {//return;
       if (longpress) {
         longpress = false;
         detikAlarm = EEPROM.read(0) * 3600 + EEPROM.read(1) * 60;
+        if(detikAlarm <60) detikAlarm=60;
         detikPlay = 0;
         mode = PLAY;
       } else {
@@ -250,7 +264,7 @@ void loop() {//return;
       updateTimerSetting();
 
     }  else  if (mode == SETTIME) {
-      jamT++; if (jamT > 59) jamT = 00;
+      jamT++; if (jamT > 23) jamT = 00;
       //EEPROM.write(0, jamT);
       updateTimerSetting();
 
@@ -276,7 +290,7 @@ void loop() {//return;
       } else if (longpress && mode == STDBY) {        //STDBY --> SETTIME (Press C 3 second at standby)
         longpress = false;
         mode = SETTIME;
-
+        jamT = hour; menitT = minute; detikT = second;
       } else if (longpress && mode == SETTIME) {        //SETTIME --> STDBY, cancel set time (Press C 3 second at set time)
         longpress = false;
         mode = STDBY;
@@ -292,11 +306,7 @@ void loop() {//return;
       if (jamT > 0) jamT--; else jamT = 23;
       EEPROM.write(0, jamT);
       updateTimerSetting();
-    } else  if (mode == SETTIME) {
-      if (jamT > 0) jamT--; else jamT = 23;
-      //EEPROM.write(0, jamT);
-      updateTimerSetting();
-    } else if (mode == PLAY) {
+    } else if (mode == PLAY || mode == SETTIME) {
       while (digitalRead(A3)) {
         iteration++;
         delay(50);
@@ -315,15 +325,23 @@ void loop() {//return;
       if (longpress && mode == PLAY) {                //PLAY: Round down
         longpress = false;
         Round--;
-      } else if (longpress && mode == SETTIME) {        //SETTIME --> STDBY, cancel set time (Press C 3 second at set time)
+      } else if (longpress && mode == SETTIME){
         longpress = false;
         setDS3231time(  detikT, menitT, jamT, dayOfWeek, dayOfMonth, month, year);
         mode = STDBY;
-        Round = 0;
-      } else {
-        if (ScoreA > 0)ScoreA--; scoreChange = true;
+        Round = 0x0A;
       }
+      else if (mode == PLAY){
+        if (ScoreA > 0)ScoreA--; scoreChange = true;
+      }else  if (mode == SETTIME ) {
+      
+      if (jamT > 0) jamT--; else jamT = 23;
+      //EEPROM.write(0, jamT);
+      Serial.println(jamT); updateTimerSetting();
     }
+    } 
+    else if (longpress && mode == SETTIME) {        //SETTIME --> STDBY, cancel set time (Press C 3 second at set time)
+      } 
     deBounching();
   }
 
@@ -345,7 +363,8 @@ void loop() {//return;
     if (mode == STDBY) {
       Serial.println("Standby....");
       updateJamSetting();
-      dmd.clearScreen();
+
+
     }
     if (mode == ALARM) {
       Serial.println("Alarm....");
@@ -387,30 +406,75 @@ void loop() {//return;
     }
     //if (mode == PLAY || mode == ALARM || mode == PAUSED ) {
     //}
+
+    if (mode == SETTIME) {
+      digitalWrite(pinBuzzer, HIGH);
+      delay(50);
+      digitalWrite(pinBuzzer, LOW);
+    }
   }
 
   if (mode == SETTIME) {
-    digitalWrite(pinBuzzer, HIGH);
+    //digitalWrite(pinBuzzer, HIGH);
     Serial.println("Setting RTC....");
     Round = 0x0a;
     //updateJamSetting();
     //EEPROM.write(2,hour);
     //EEPROM.write(3,minute);
     //EEPROM.write(4,second);
-    jamT = hour; menitT = minute; detikT = second;
+    //jamT = hour; menitT = minute; detikT = second;
     updateTimerSetting();
   }
 
 
   if (scoreChange) {
     scoreChange = false;
-    dmd.clearScreen();
-    dmd.drawString(0, 0, String(ScoreA / 10));
-    dmd.drawString(16, 0, String(ScoreA % 10));
-    dmd.drawString(0, 32, String(ScoreB / 10));
-    dmd.drawString(16, 32, String(ScoreB % 10));
+    if (mode == STDBY) {
+      dmd.clearScreen();
+
+      //      dmd.drawString(16, 32, String(":"));
+      //      dmd.drawString(0, 32, String(":"));
+      //      dmd.drawString(0, 0, String(":"));
+      //      dmd.drawString(16, 0, String(":"));
+
+      dmd.clearScreen();
+      Round = 0x0A;
+      dmd.drawString(16, 32, String("D"));
+      dmd.drawString(0, 32, String("D"));
+      clearLine(1);
+      dmd.setBrightness(255);  //on DMD
+
+    } else {
+dmd.setBrightness(0);  //on DMD
+      String ch;
+      ch = inttochar(ScoreB % 10);
+      //dmd.drawString(16, 32, String(ScoreB % 10));
+      //dmd.drawString(0, 32, String(ScoreB / 10));
+      dmd.drawString(16, 32, ch);
+      ch = inttochar(ScoreB / 10);
+      dmd.drawString(0, 32, ch);
+      dmd.drawString(0, 0, String(ScoreA / 10));
+      dmd.drawString(16, 0, String(ScoreA % 10));
+
+
+      clearLine(ScoreB % 10);
+dmd.setBrightness(255);  //on DMD
+}
   }
 
+}
+String inttochar(byte num) { //: ; < = > ? @ A B C D
+  if (num == 0) return String(":");
+  else if (num == 1) return String(";");
+  else if (num == 2) return String("<");
+  else if (num == 3) return String("=");
+  else if (num == 4) return String(">");
+  else if (num == 5) return String("?");
+  else if (num == 6) return String("@");
+  else if (num == 7) return String("A");
+  else if (num == 8) return String("B");
+  else if (num == 9) return String("C");
+  else return "D";
 }
 ///RTC Function
 void setDS3231time(byte second, byte minute, byte hour, byte dayOfWeek, byte
@@ -489,4 +553,46 @@ void displayRound(byte Round) {
 
 void updateRTC() {
   setDS3231time(  second, minute, hour, dayOfWeek, dayOfMonth, month, year);
+}
+
+#ifndef GRAPHICS_ON
+#define GRAPHICS_ON  true
+#endif
+
+void clearLine(byte angka) {
+  //clear line  2356890
+  for (byte x = 48; x < 52; x++) { //garis pada C on
+    dmd.setPixel(16, x, GRAPHICS_ON);
+    //delay(100);
+    dmd.setPixel(16, 55, GRAPHICS_ON);
+  }
+
+  //angka 147
+  if (angka == 1 || angka == 4 || angka == 7) { //garis pada C off
+    for (byte x = 52; x < 56; x++) {
+      dmd.setPixel(16, x, GRAPHICS_ON);
+      //delay(100);
+    }
+  }
+
+  for (byte x = 56; x < 64; x++) { //Outline
+    dmd.setPixel(16, x, GRAPHICS_ON);
+    //delay(100);
+  }
+
+  if (angka == 2 || angka == 3 || angka == 4 || angka == 5 || angka == 6 || angka == 8 || angka == 9) { //G on
+    for (byte x = 32; x < 48; x++) {
+      if (x == 38 || x == 39) continue;
+      dmd.setPixel(16, x, GRAPHICS_ON);
+      //delay(100);
+    }
+  }
+  if (angka == 1 || angka == 7 || angka == 0) { //G off
+    for (byte x = 32; x < 48; x++) {
+      dmd.setPixel(16, x, GRAPHICS_ON);
+      //delay(100);
+    }
+  }
+
+
 }
